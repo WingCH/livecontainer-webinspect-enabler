@@ -19,8 +19,20 @@ static void WILLog(NSString *format, ...) {
     NSString *message = [[NSString alloc] initWithFormat:format arguments:arguments];
     va_end(arguments);
 
-    NSLog(@"[WebInspectLite] %@", message);
-    os_log_info(WebInspectLiteLog(), "%{public}@", message);
+    const char *publicMessage = [message UTF8String] ?: "";
+    os_log_info(WebInspectLiteLog(), "%{public}s", publicMessage);
+    os_log_info(OS_LOG_DEFAULT, "[WebInspectLite] %{public}s", publicMessage);
+}
+
+static void WILError(NSString *format, ...) {
+    va_list arguments;
+    va_start(arguments, format);
+    NSString *message = [[NSString alloc] initWithFormat:format arguments:arguments];
+    va_end(arguments);
+
+    const char *publicMessage = [message UTF8String] ?: "";
+    os_log_error(WebInspectLiteLog(), "%{public}s", publicMessage);
+    os_log_error(OS_LOG_DEFAULT, "[WebInspectLite] %{public}s", publicMessage);
 }
 
 static void WILMakeWebViewInspectable(WKWebView *webView) {
@@ -110,8 +122,7 @@ static void WILSwizzleInstanceMethod(Class targetClass, SEL originalSelector, SE
 
     Method swizzledMethod = class_getInstanceMethod(targetClass, swizzledSelector);
     if (swizzledMethod == NULL) {
-        os_log_error(WebInspectLiteLog(), "Swizzled selector not found after add: %{public}@", NSStringFromSelector(swizzledSelector));
-        NSLog(@"[WebInspectLite] Swizzled selector not found after add: %@", NSStringFromSelector(swizzledSelector));
+        WILError(@"Swizzled selector not found after add: %@", NSStringFromSelector(swizzledSelector));
         return;
     }
 
@@ -125,8 +136,7 @@ static void WILInitialize(void) {
 
     Class webViewClass = NSClassFromString(@"WKWebView");
     if (webViewClass == Nil) {
-        os_log_error(WebInspectLiteLog(), "WKWebView class not found");
-        NSLog(@"[WebInspectLite] WKWebView class not found");
+        WILError(@"WKWebView class not found");
         return;
     }
 

@@ -26,6 +26,8 @@
 
 如果完全沒有 `[WebInspectLite]` log，代表 dylib 可能未被 LiveContainer 載入或 app 沒有套用正確的 tweak folder。
 
+如果看到 `[WebInspectLite] <private>`，代表正在使用舊版 dylib；新版使用 `%{public}s` 輸出，Console 應顯示完整訊息。
+
 ## 建議測試類型
 
 - Native `WKWebView` app
