@@ -26,7 +26,6 @@ livecontainer-webinspect-lite/
 ├── LICENSE
 ├── CHANGELOG.md
 ├── Makefile
-├── WebInspectLite.plist
 ├── docs/
 │   ├── proposal.md
 │   ├── compatibility.md

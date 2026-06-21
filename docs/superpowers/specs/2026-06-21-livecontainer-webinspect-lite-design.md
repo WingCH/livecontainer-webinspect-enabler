@@ -25,11 +25,10 @@ LiveContainer 是 app launcher，不是 emulator 或 hypervisor。它會 patch g
 
 ## 架構
 
-專案採 Theos-oriented tweak 結構：
+專案採 Theos-oriented plain dylib 結構，避免產物依賴 `/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate`：
 
-- `src/WebInspectLite.xm`：唯一 runtime source，hook `WKWebView` 常見初始化路徑。
-- `WebInspectLite.plist`：Theos tweak filter metadata。實際使用範圍由 LiveContainer app-specific tweak folder 控制。
-- `Makefile`：Theos build 設定，輸出 tweak dylib。
+- `src/WebInspectLite.xm`：唯一 runtime source，用 Objective-C runtime swizzling 處理 `WKWebView` 常見初始化路徑。
+- `Makefile`：Theos `library.mk` build 設定，輸出 plain dylib。
 - `scripts/build.sh`：包裝 build 並複製 artifact 到 `build/artifacts/WebInspectLite.dylib`。
 - `tests/static_smoke.sh`：本機靜態檢查，確認 source 保持 LiveContainer-friendly 設計。
 - `docs/`：記錄 proposal、compatibility、experiments。
@@ -40,8 +39,8 @@ LiveContainer 是 app launcher，不是 emulator 或 hypervisor。它會 patch g
 `WebInspectLite.dylib` 載入後會：
 
 1. 記錄 dylib 已載入。
-2. hook `WKWebView` 的 `initWithFrame:configuration:`。
-3. hook `WKWebView` 的 `initWithCoder:`，涵蓋 storyboard / nib 來源。
+2. swizzle `WKWebView` 的 `initWithFrame:configuration:`。
+3. swizzle `WKWebView` 的 `initWithCoder:`，涵蓋 storyboard / nib 來源。
 4. 每次取得 `WKWebView` instance 後，檢查是否支援 `setInspectable:`。
 5. 若支援，呼叫 `setInspectable:YES`。
 6. 若不支援，只記錄跳過，不拋出例外。
