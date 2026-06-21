@@ -4,11 +4,11 @@
 #import <objc/runtime.h>
 #import <os/log.h>
 
-static os_log_t WebInspectLiteLog(void) {
+static os_log_t WebInspectEnablerLog(void) {
     static os_log_t log;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        log = os_log_create("dev.wingchan.WebInspectLite", "runtime");
+        log = os_log_create("dev.wingchan.WebInspectEnabler", "runtime");
     });
     return log;
 }
@@ -20,8 +20,8 @@ static void WILLog(NSString *format, ...) {
     va_end(arguments);
 
     const char *publicMessage = [message UTF8String] ?: "";
-    os_log_info(WebInspectLiteLog(), "%{public}s", publicMessage);
-    os_log_info(OS_LOG_DEFAULT, "[WebInspectLite] %{public}s", publicMessage);
+    os_log_info(WebInspectEnablerLog(), "%{public}s", publicMessage);
+    os_log_info(OS_LOG_DEFAULT, "[WebInspectEnabler] %{public}s", publicMessage);
 }
 
 static void WILError(NSString *format, ...) {
@@ -31,8 +31,8 @@ static void WILError(NSString *format, ...) {
     va_end(arguments);
 
     const char *publicMessage = [message UTF8String] ?: "";
-    os_log_error(WebInspectLiteLog(), "%{public}s", publicMessage);
-    os_log_error(OS_LOG_DEFAULT, "[WebInspectLite] %{public}s", publicMessage);
+    os_log_error(WebInspectEnablerLog(), "%{public}s", publicMessage);
+    os_log_error(OS_LOG_DEFAULT, "[WebInspectEnabler] %{public}s", publicMessage);
 }
 
 static void WILMakeWebViewInspectable(WKWebView *webView) {
@@ -132,7 +132,7 @@ static void WILSwizzleInstanceMethod(Class targetClass, SEL originalSelector, SE
 
 __attribute__((constructor))
 static void WILInitialize(void) {
-    WILLog(@"WebInspectLite loaded for LiveContainer guest process");
+    WILLog(@"WebInspectEnabler loaded for LiveContainer guest process");
 
     Class webViewClass = NSClassFromString(@"WKWebView");
     if (webViewClass == Nil) {

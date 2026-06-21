@@ -45,7 +45,7 @@
 
 ### Milestone 2: Minimal dylib Prototype
 
-產出可匯入 LiveContainer 的 `WebInspectLite.dylib`。
+產出可匯入 LiveContainer 的 `WebInspectEnabler.dylib`。
 
 ### Milestone 3: LiveContainer Compatibility Test
 

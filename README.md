@@ -22,7 +22,7 @@ This project does not support or attempt:
 
 ## How It Works
 
-LiveContainer loads `WebInspectLite.dylib` from a selected tweak folder when launching a guest app. After the dylib is loaded, it installs Objective-C runtime swizzles on selected `WKWebView` methods and re-asserts:
+LiveContainer loads `WebInspectEnabler.dylib` from a selected tweak folder when launching a guest app. After the dylib is loaded, it installs Objective-C runtime swizzles on selected `WKWebView` methods and re-asserts:
 
 ```objc
 inspectable = YES
@@ -45,7 +45,7 @@ livecontainer-webinspect-enabler/
 │   ├── compatibility.md
 │   └── experiments.md
 ├── src/
-│   └── WebInspectLite.xm
+│   └── WebInspectEnabler.xm
 ├── scripts/
 │   └── build.sh
 ├── tests/
@@ -68,7 +68,7 @@ A working Theos environment is required.
 The build artifact is copied to:
 
 ```text
-build/artifacts/WebInspectLite.dylib
+build/artifacts/WebInspectEnabler.dylib
 ```
 
 ## LiveContainer Usage
@@ -76,8 +76,8 @@ build/artifacts/WebInspectLite.dylib
 Use an app-specific tweak folder unless you intentionally want to apply the dylib globally.
 
 1. Open the `Tweaks` tab in LiveContainer.
-2. Create a new folder, for example `WebInspectLite`.
-3. Import `build/artifacts/WebInspectLite.dylib`.
+2. Create a new folder, for example `WebInspectEnabler`.
+3. Import `build/artifacts/WebInspectEnabler.dylib`.
 4. Open the target app settings.
 5. Set `Tweak Folder` to the folder created above.
 6. Make sure `Don't Inject TweakLoader` and `Don't Load TweakLoader` are not enabled.
@@ -91,18 +91,18 @@ LiveContainer tweak documentation: <https://livecontainer.github.io/docs/guides/
 Filter device logs by:
 
 ```text
-WebInspectLite
+WebInspectEnabler
 ```
 
 Expected messages include:
 
 ```text
-[WebInspectLite] WebInspectLite loaded for LiveContainer guest process
-[WebInspectLite] Swizzled selector: initWithFrame:configuration:
-[WebInspectLite] Enabled inspectable for WKWebView:
+[WebInspectEnabler] WebInspectEnabler loaded for LiveContainer guest process
+[WebInspectEnabler] Swizzled selector: initWithFrame:configuration:
+[WebInspectEnabler] Enabled inspectable for WKWebView:
 ```
 
-If Safari sees the iPhone but shows no inspectable applications, first confirm that the LiveContainer app is using the correct tweak folder and that `[WebInspectLite]` logs appear.
+If Safari sees the iPhone but shows no inspectable applications, first confirm that the LiveContainer app is using the correct tweak folder and that `[WebInspectEnabler]` logs appear.
 
 ## Tests
 

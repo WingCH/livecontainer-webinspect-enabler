@@ -5,7 +5,7 @@
 主要產物：
 
 ```text
-build/artifacts/WebInspectLite.dylib
+build/artifacts/WebInspectEnabler.dylib
 ```
 
 請使用 `scripts/build.sh` 產生此檔案，不要手動放置來源不明的 dylib。

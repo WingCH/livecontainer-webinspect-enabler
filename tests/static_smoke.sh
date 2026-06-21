@@ -2,7 +2,7 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-SOURCE="$ROOT_DIR/src/WebInspectLite.xm"
+SOURCE="$ROOT_DIR/src/WebInspectEnabler.xm"
 BUILD_SCRIPT="$ROOT_DIR/scripts/build.sh"
 
 require_pattern() {
@@ -60,10 +60,10 @@ require_pattern "respondsToSelector:selector" "safe availability check before ca
 require_pattern "objc_msgSend" "runtime call to set inspectable without compile-time SDK dependency"
 require_pattern "__attribute__((constructor))" "plain dylib load-time constructor"
 require_pattern "method_exchangeImplementations" "Objective-C runtime swizzling without substrate"
-require_pattern "os_log_info(OS_LOG_DEFAULT, \"[WebInspectLite] %{public}s\"" "Console-visible public diagnostic logging"
-require_pattern "os_log_error(OS_LOG_DEFAULT, \"[WebInspectLite] %{public}s\"" "Console-visible public error logging"
-reject_pattern "NSLog(@\"[WebInspectLite] %@\"" "NSLog object formatting is redacted as private in Console"
-reject_pattern "os_log_info(WebInspectLiteLog(), \"%{public}@\"" "object logging can still be hard to read in Console"
+require_pattern "os_log_info(OS_LOG_DEFAULT, \"[WebInspectEnabler] %{public}s\"" "Console-visible public diagnostic logging"
+require_pattern "os_log_error(OS_LOG_DEFAULT, \"[WebInspectEnabler] %{public}s\"" "Console-visible public error logging"
+reject_pattern "NSLog(@\"[WebInspectEnabler] %@\"" "NSLog object formatting is redacted as private in Console"
+reject_pattern "os_log_info(WebInspectEnablerLog(), \"%{public}@\"" "object logging can still be hard to read in Console"
 reject_pattern "%hook" "Logos hook that links CydiaSubstrate"
 reject_pattern "%ctor" "Logos constructor that links CydiaSubstrate"
 reject_pattern "/Library/MobileSubstrate" "system-wide jailbreak path"
@@ -77,8 +77,8 @@ fi
 require_file_pattern "$ROOT_DIR/Makefile" 'include $(THEOS_MAKE_PATH)/library.mk' "plain library build target"
 reject_file_pattern "$ROOT_DIR/Makefile" 'include $(THEOS_MAKE_PATH)/tweak.mk' "Theos tweak target links substrate"
 
-if [ -f "$ROOT_DIR/build/artifacts/WebInspectLite.dylib" ]; then
-  LINKAGE="$(otool -L "$ROOT_DIR/build/artifacts/WebInspectLite.dylib")"
+if [ -f "$ROOT_DIR/build/artifacts/WebInspectEnabler.dylib" ]; then
+  LINKAGE="$(otool -L "$ROOT_DIR/build/artifacts/WebInspectEnabler.dylib")"
   if printf '%s\n' "$LINKAGE" | grep -Fq "CydiaSubstrate"; then
     echo "Forbidden: artifact links CydiaSubstrate" >&2
     exit 1
