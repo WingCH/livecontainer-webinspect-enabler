@@ -13,6 +13,16 @@ static os_log_t WebInspectLiteLog(void) {
     return log;
 }
 
+static void WILLog(NSString *format, ...) {
+    va_list arguments;
+    va_start(arguments, format);
+    NSString *message = [[NSString alloc] initWithFormat:format arguments:arguments];
+    va_end(arguments);
+
+    NSLog(@"[WebInspectLite] %@", message);
+    os_log_info(WebInspectLiteLog(), "%{public}@", message);
+}
+
 static void WILMakeWebViewInspectable(WKWebView *webView) {
     if (webView == nil) {
         return;
@@ -20,12 +30,12 @@ static void WILMakeWebViewInspectable(WKWebView *webView) {
 
     SEL selector = NSSelectorFromString(@"setInspectable:");
     if (![webView respondsToSelector:selector]) {
-        os_log_info(WebInspectLiteLog(), "WKWebView does not support inspectable selector");
+        WILLog(@"WKWebView does not support inspectable selector");
         return;
     }
 
     ((void (*)(id, SEL, BOOL))objc_msgSend)(webView, selector, YES);
-    os_log_info(WebInspectLiteLog(), "Enabled inspectable for WKWebView: %{public}@", webView);
+    WILLog(@"Enabled inspectable for WKWebView: %@", webView);
 }
 
 static id WILInitWithFrameConfiguration(id self, SEL _cmd, CGRect frame, id configuration) {
@@ -44,36 +54,79 @@ static id WILInitWithCoder(id self, SEL _cmd, id coder) {
     return webView;
 }
 
+static void WILSetInspectable(id self, SEL _cmd, BOOL inspectable) {
+    SEL swizzledSelector = NSSelectorFromString(@"wil_setInspectable:");
+    void (*originalSetInspectable)(id, SEL, BOOL) = (void (*)(id, SEL, BOOL))objc_msgSend;
+    originalSetInspectable(self, swizzledSelector, YES);
+    WILLog(@"Forced inspectable=YES for WKWebView: %@", self);
+}
+
+static void WILDidMoveToWindow(id self, SEL _cmd) {
+    SEL swizzledSelector = NSSelectorFromString(@"wil_didMoveToWindow");
+    void (*originalDidMoveToWindow)(id, SEL) = (void (*)(id, SEL))objc_msgSend;
+    originalDidMoveToWindow(self, swizzledSelector);
+    WILMakeWebViewInspectable((WKWebView *)self);
+}
+
+static id WILLoadRequest(id self, SEL _cmd, id request) {
+    SEL swizzledSelector = NSSelectorFromString(@"wil_loadRequest:");
+    id (*originalLoadRequest)(id, SEL, id) = (id (*)(id, SEL, id))objc_msgSend;
+    WILMakeWebViewInspectable((WKWebView *)self);
+    id navigation = originalLoadRequest(self, swizzledSelector, request);
+    WILMakeWebViewInspectable((WKWebView *)self);
+    return navigation;
+}
+
+static id WILLoadHTMLStringBaseURL(id self, SEL _cmd, id htmlString, id baseURL) {
+    SEL swizzledSelector = NSSelectorFromString(@"wil_loadHTMLString:baseURL:");
+    id (*originalLoadHTMLString)(id, SEL, id, id) = (id (*)(id, SEL, id, id))objc_msgSend;
+    WILMakeWebViewInspectable((WKWebView *)self);
+    id navigation = originalLoadHTMLString(self, swizzledSelector, htmlString, baseURL);
+    WILMakeWebViewInspectable((WKWebView *)self);
+    return navigation;
+}
+
+static id WILLoadFileURLAllowingReadAccessToURL(id self, SEL _cmd, id fileURL, id readAccessURL) {
+    SEL swizzledSelector = NSSelectorFromString(@"wil_loadFileURL:allowingReadAccessToURL:");
+    id (*originalLoadFileURL)(id, SEL, id, id) = (id (*)(id, SEL, id, id))objc_msgSend;
+    WILMakeWebViewInspectable((WKWebView *)self);
+    id navigation = originalLoadFileURL(self, swizzledSelector, fileURL, readAccessURL);
+    WILMakeWebViewInspectable((WKWebView *)self);
+    return navigation;
+}
+
 static void WILSwizzleInstanceMethod(Class targetClass, SEL originalSelector, SEL swizzledSelector, IMP swizzledImplementation) {
     Method originalMethod = class_getInstanceMethod(targetClass, originalSelector);
     if (originalMethod == NULL) {
-        os_log_info(WebInspectLiteLog(), "Original selector not found: %{public}@", NSStringFromSelector(originalSelector));
+        WILLog(@"Original selector not found: %@", NSStringFromSelector(originalSelector));
         return;
     }
 
     const char *typeEncoding = method_getTypeEncoding(originalMethod);
     BOOL added = class_addMethod(targetClass, swizzledSelector, swizzledImplementation, typeEncoding);
     if (!added) {
-        os_log_info(WebInspectLiteLog(), "Swizzled selector already exists: %{public}@", NSStringFromSelector(swizzledSelector));
+        WILLog(@"Swizzled selector already exists: %@", NSStringFromSelector(swizzledSelector));
     }
 
     Method swizzledMethod = class_getInstanceMethod(targetClass, swizzledSelector);
     if (swizzledMethod == NULL) {
         os_log_error(WebInspectLiteLog(), "Swizzled selector not found after add: %{public}@", NSStringFromSelector(swizzledSelector));
+        NSLog(@"[WebInspectLite] Swizzled selector not found after add: %@", NSStringFromSelector(swizzledSelector));
         return;
     }
 
     method_exchangeImplementations(originalMethod, swizzledMethod);
-    os_log_info(WebInspectLiteLog(), "Swizzled selector: %{public}@", NSStringFromSelector(originalSelector));
+    WILLog(@"Swizzled selector: %@", NSStringFromSelector(originalSelector));
 }
 
 __attribute__((constructor))
 static void WILInitialize(void) {
-    os_log_info(WebInspectLiteLog(), "WebInspectLite loaded for LiveContainer guest process");
+    WILLog(@"WebInspectLite loaded for LiveContainer guest process");
 
     Class webViewClass = NSClassFromString(@"WKWebView");
     if (webViewClass == Nil) {
         os_log_error(WebInspectLiteLog(), "WKWebView class not found");
+        NSLog(@"[WebInspectLite] WKWebView class not found");
         return;
     }
 
@@ -89,5 +142,40 @@ static void WILInitialize(void) {
         @selector(initWithCoder:),
         NSSelectorFromString(@"wil_initWithCoder:"),
         (IMP)WILInitWithCoder
+    );
+
+    WILSwizzleInstanceMethod(
+        webViewClass,
+        @selector(setInspectable:),
+        NSSelectorFromString(@"wil_setInspectable:"),
+        (IMP)WILSetInspectable
+    );
+
+    WILSwizzleInstanceMethod(
+        webViewClass,
+        @selector(didMoveToWindow),
+        NSSelectorFromString(@"wil_didMoveToWindow"),
+        (IMP)WILDidMoveToWindow
+    );
+
+    WILSwizzleInstanceMethod(
+        webViewClass,
+        @selector(loadRequest:),
+        NSSelectorFromString(@"wil_loadRequest:"),
+        (IMP)WILLoadRequest
+    );
+
+    WILSwizzleInstanceMethod(
+        webViewClass,
+        @selector(loadHTMLString:baseURL:),
+        NSSelectorFromString(@"wil_loadHTMLString:baseURL:"),
+        (IMP)WILLoadHTMLStringBaseURL
+    );
+
+    WILSwizzleInstanceMethod(
+        webViewClass,
+        @selector(loadFileURL:allowingReadAccessToURL:),
+        NSSelectorFromString(@"wil_loadFileURL:allowingReadAccessToURL:"),
+        (IMP)WILLoadFileURLAllowingReadAccessToURL
     );
 }

@@ -14,6 +14,18 @@
 2. `WKWebView` 建立時是否看到 WebInspectLite log？
 3. Mac Safari 的 Develop menu 是否顯示目標 WebView？
 
+## 診斷 log
+
+匯入後請優先確認裝置 log 是否出現以下訊息：
+
+```text
+[WebInspectLite] WebInspectLite loaded for LiveContainer guest process
+[WebInspectLite] Swizzled selector: initWithFrame:configuration:
+[WebInspectLite] Enabled inspectable for WKWebView:
+```
+
+如果完全沒有 `[WebInspectLite]` log，代表 dylib 可能未被 LiveContainer 載入或 app 沒有套用正確的 tweak folder。
+
 ## 建議測試類型
 
 - Native `WKWebView` app
