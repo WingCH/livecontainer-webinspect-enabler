@@ -1,27 +1,41 @@
-# LiveContainer WebInspect Lite
+# LiveContainer WebInspect Enabler
 
-`livecontainer-webinspect-lite` 是一個輕量 LiveContainer 專用 tweak，目標是在 LiveContainer guest app 內自動啟用 `WKWebView.inspectable`，讓 WebView 可出現在 Mac Safari 的 Develop menu 供除錯使用。
+`livecontainer-webinspect-enabler` is a lightweight LiveContainer-oriented dylib that automatically enables `WKWebView.inspectable` inside LiveContainer guest apps, allowing WebViews to appear in the Mac Safari Develop menu for debugging.
 
-本專案針對 [LiveContainer/LiveContainer](https://github.com/LiveContainer/LiveContainer) 的 TweakLoader 使用情境設計。它不是 system-wide jailbreak tweak，也不嘗試替代 GlobalWebInspect。
+This project is designed specifically for [LiveContainer/LiveContainer](https://github.com/LiveContainer/LiveContainer) and its TweakLoader workflow. It is not a system-wide jailbreak tweak and does not try to replace GlobalWebInspect.
 
-## 適用範圍
+## Scope
 
-- LiveContainer guest app 的 WebView 除錯
-- iOS 26 作為主要測試目標
-- 擁有或已獲授權 app 的開發、研究與測試
+This project is intended for:
 
-不支援或不處理：
+- Debugging WebViews inside LiveContainer guest apps.
+- iOS 26-focused testing.
+- Development, research, and debugging of owned or authorized apps.
 
-- app 破解、資料擷取、token dumping
-- jailbreak detection bypass
-- 舊 iOS WebInspector entitlement bypass
-- system-wide injection
-- 複雜 UI 或設定面板
+This project does not support or attempt:
 
-## 專案結構
+- App cracking, data extraction, or token dumping.
+- Jailbreak detection bypasses.
+- Legacy iOS WebInspector entitlement bypasses.
+- System-wide injection.
+- A preference UI or settings panel.
+
+## How It Works
+
+LiveContainer loads `WebInspectLite.dylib` from a selected tweak folder when launching a guest app. After the dylib is loaded, it installs Objective-C runtime swizzles on selected `WKWebView` methods and re-asserts:
+
+```objc
+inspectable = YES
+```
+
+The implementation uses runtime selector checks before calling `setInspectable:` so unsupported runtimes are skipped instead of crashing.
+
+The dylib is built as a plain library and does not link against CydiaSubstrate.
+
+## Project Layout
 
 ```text
-livecontainer-webinspect-lite/
+livecontainer-webinspect-enabler/
 ├── README.md
 ├── LICENSE
 ├── CHANGELOG.md
@@ -43,48 +57,65 @@ livecontainer-webinspect-lite/
     └── README.md
 ```
 
-## 建置
+## Build
 
-需要可用的 Theos build 環境。
+A working Theos environment is required.
 
 ```sh
 ./scripts/build.sh
 ```
 
-成功後產物會複製到：
+The build artifact is copied to:
 
 ```text
 build/artifacts/WebInspectLite.dylib
 ```
 
-## LiveContainer 使用方式
+## LiveContainer Usage
 
-建議使用 app-specific tweak folder，避免全域套用到所有 guest apps。
+Use an app-specific tweak folder unless you intentionally want to apply the dylib globally.
 
-1. 在 LiveContainer 開啟 `Tweaks` tab。
-2. 建立一個新資料夾，例如 `WebInspectLite`。
-3. 匯入 `build/artifacts/WebInspectLite.dylib`。
-4. 開啟目標 app 的 app settings。
-5. 將 `Tweak Folder` 設為剛建立的資料夾。
-6. 確認沒有啟用 `Don't Inject TweakLoader` 或 `Don't Load TweakLoader`。
-7. 啟動 guest app，並在 Mac Safari 的 Develop menu 檢查 WebView。
+1. Open the `Tweaks` tab in LiveContainer.
+2. Create a new folder, for example `WebInspectLite`.
+3. Import `build/artifacts/WebInspectLite.dylib`.
+4. Open the target app settings.
+5. Set `Tweak Folder` to the folder created above.
+6. Make sure `Don't Inject TweakLoader` and `Don't Load TweakLoader` are not enabled.
+7. Launch the guest app.
+8. Open Mac Safari and check the Develop menu for the WebView.
 
-LiveContainer 官方 Tweaks 文件：<https://livecontainer.github.io/docs/guides/tweaks>
+LiveContainer tweak documentation: <https://livecontainer.github.io/docs/guides/tweaks>
 
-## 測試
+## Diagnostics
 
-本機 smoke check：
+Filter device logs by:
+
+```text
+WebInspectLite
+```
+
+Expected messages include:
+
+```text
+[WebInspectLite] WebInspectLite loaded for LiveContainer guest process
+[WebInspectLite] Swizzled selector: initWithFrame:configuration:
+[WebInspectLite] Enabled inspectable for WKWebView:
+```
+
+If Safari sees the iPhone but shows no inspectable applications, first confirm that the LiveContainer app is using the correct tweak folder and that `[WebInspectLite]` logs appear.
+
+## Tests
+
+Run the local smoke checks:
 
 ```sh
 ./tests/static_smoke.sh
 ```
 
-實機測試請記錄在 [docs/compatibility.md](docs/compatibility.md)，並分開確認：
+These checks verify that the source remains substrate-free, includes the expected `WKWebView` swizzles, and that the built artifact does not link against CydiaSubstrate.
 
-1. LiveContainer 是否載入 dylib。
-2. hook 是否命中 `WKWebView` 建立。
-3. Safari Develop menu 是否顯示 WebView。
+Real-device compatibility results should be recorded in [docs/compatibility.md](docs/compatibility.md).
 
-## 授權
+## License
 
-見 [LICENSE](LICENSE)。
+See [LICENSE](LICENSE).
