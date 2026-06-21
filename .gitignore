@@ -1,0 +1,8 @@
+.theos/
+packages/
+*.deb
+*.dylib
+*.dSYM/
+build/artifacts/*
+!build/artifacts/.gitkeep
+.DS_Store
